@@ -1,6 +1,6 @@
 "use client";
 
-import { SignInButton, SignUpButton, UserButton, useUser } from "@clerk/nextjs";
+import { SignInButton, SignOutButton, SignUpButton, useUser } from "@clerk/nextjs";
 import { useEffect } from "react";
 
 function AccountActions() {
@@ -34,7 +34,9 @@ function AccountActions() {
           ? `Signed in as ${primaryEmail.emailAddress}`
           : "Verify your CWP account email to unlock the wheel."}
       </span>
-      <UserButton />
+      <SignOutButton redirectUrl="/">
+        <button className="account-signout" type="button">Log out</button>
+      </SignOutButton>
     </div>
   );
 }

@@ -61,7 +61,9 @@ h1 { font-size: clamp(39px,5.6vw,70px); letter-spacing: -.5px; line-height: 1.13
 .account-signup { min-height: 38px; border: 0; background: transparent; color: #365c41; text-decoration: underline; text-underline-offset: 3px; }
 .account-loading { margin: 8px 0; color: #52624f; font-size: 14px; line-height: 1.5; }
 .account-session { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 42px; margin: 9px 0; }
-.account-email { max-width: calc(100% - 52px); overflow-wrap: anywhere; color: #365c41; font-size: 13px; line-height: 1.45; }
+.account-email { max-width: calc(100% - 100px); overflow-wrap: anywhere; color: #365c41; font-size: 13px; line-height: 1.45; }
+.account-signout { min-height: 36px; padding: 7px 13px; border: 1px solid #77906d; border-radius: 999px; background: #fffdf5; color: #31533a; font-size: 13px; font-weight: 700; }
+.account-signout:hover { background: #edf2e5; }
 .gate-status { min-height: 20px; margin: 8px 0; color: #8c3e32; font-size: 14px; }
 .gate-status:empty { display: none; }
 .gate-status.is-success { color: #365c41; }
