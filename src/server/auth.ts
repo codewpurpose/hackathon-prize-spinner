@@ -164,7 +164,61 @@ export function escapeHtml(value: string) {
 
 export function emailHtml(name: string, code: string) {
   const escapedName = escapeHtml(name);
-  return `<div style="font-family:Arial,sans-serif;color:#1e3c2c;max-width:520px;margin:24px auto;padding:28px;background:#fcf4e8;border-radius:18px"><p style="font-size:14px">CodeWithPurpose Hackathon</p><h1 style="font-size:26px">Your wheel code</h1><p>Hi ${escapedName}, enter this code on the spinner page to unlock your one spin:</p><p style="font-size:34px;font-weight:bold;letter-spacing:9px;background:#fffbf5;padding:18px;border-radius:12px;text-align:center">${code}</p><p>This code expires in 15 minutes. If it expires, request a new one from the page.</p><p>If you didn’t ask for this code, you can ignore this email.</p></div>`;
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <title>Your Hackathon sign-in code</title>
+  </head>
+  <body style="margin:0;padding:0;background-color:#f5f3e9;font-family:Arial,Helvetica,sans-serif;color:#254733;-webkit-text-size-adjust:100%;">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">Your one-time CodeWithPurpose Hackathon sign-in code is inside.</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f5f3e9;">
+      <tr>
+        <td align="center" style="padding:36px 16px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background-color:#fffdf7;border:1px solid #e2e5d8;border-radius:16px;overflow:hidden;">
+            <tr>
+              <td style="height:7px;background-color:#d5aa4e;font-size:0;line-height:0;">&nbsp;</td>
+            </tr>
+            <tr>
+              <td style="padding:30px 36px 8px;">
+                <p style="margin:0;color:#526b4d;font-size:12px;font-weight:bold;letter-spacing:1.5px;line-height:18px;text-transform:uppercase;">CodeWithPurpose</p>
+                <p style="margin:6px 0 0;color:#71806b;font-size:13px;line-height:20px;">Hackathon · Spinner access</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:22px 36px 0;">
+                <h1 style="margin:0;color:#254733;font-size:28px;font-weight:700;line-height:36px;">Your sign-in code</h1>
+                <p style="margin:16px 0 0;color:#425347;font-size:16px;line-height:26px;">Hi ${escapedName},</p>
+                <p style="margin:4px 0 0;color:#425347;font-size:16px;line-height:26px;">Enter this one-time code on the spinner page to unlock your one spin.</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:24px 36px 0;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f3f4e9;border:1px solid #e2e7d8;border-radius:12px;">
+                  <tr>
+                    <td align="center" style="padding:20px 12px 22px;">
+                      <p style="margin:0 0 8px;color:#64725f;font-size:11px;font-weight:bold;letter-spacing:1.5px;line-height:16px;text-transform:uppercase;">Your six-digit code</p>
+                      <p style="margin:0;color:#254733;font-family:'Courier New',monospace;font-size:36px;font-weight:bold;letter-spacing:8px;line-height:46px;">${code}</p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:22px 36px 30px;">
+                <p style="margin:0;color:#425347;font-size:14px;line-height:22px;"><strong>This code expires in 15 minutes.</strong> If it expires, request a new one from the spinner page.</p>
+                <p style="margin:16px 0 0;color:#71806b;font-size:13px;line-height:21px;">If you didn’t request this code, you can safely ignore this email.</p>
+              </td>
+            </tr>
+          </table>
+          <p style="margin:18px 0 0;color:#74806d;font-size:12px;line-height:18px;text-align:center;">A little creativity can make a big difference.</p>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
 }
 
 export async function claimSpin(email: string, session: Session) {

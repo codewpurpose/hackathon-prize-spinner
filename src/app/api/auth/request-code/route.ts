@@ -61,9 +61,9 @@ export async function POST(request: Request) {
       ({ error } = await resend.emails.send({
         from,
         to: [email],
-        subject: "Your CodeWithPurpose wheel code",
+        subject: "Your CodeWithPurpose Hackathon sign-in code",
         html: emailHtml(name, challenge.code),
-        text: `Hi ${name}, your CodeWithPurpose wheel code is ${challenge.code}. It expires in 15 minutes. If it expires, request a new one from the page.`,
+        text: `Hi ${name},\n\nEnter this one-time code on the CodeWithPurpose Hackathon spinner page to unlock your one spin:\n\n${challenge.code}\n\nThis code expires in 15 minutes. If it expires, request a new one from the spinner page.\n\nIf you didn’t request this code, you can safely ignore this email.`,
       }, { idempotencyKey: `cwp-wheel-code/${randomUUID()}` }));
     } catch {
       await redis.del(key);
