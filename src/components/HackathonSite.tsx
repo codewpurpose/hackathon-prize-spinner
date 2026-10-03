@@ -10,9 +10,11 @@ import { initialiseSpinner } from "../spinner-runtime";
 export function HackathonSite({ clerkConfigured }: { clerkConfigured: boolean }) {
   const root = useRef<HTMLDivElement>(null);
   const [gateTarget, setGateTarget] = useState<Element | null>(null);
+  const [authReturnUrl, setAuthReturnUrl] = useState("https://hack.codewithpurpose.org/");
 
   useEffect(() => {
     if (!root.current) return;
+    setAuthReturnUrl(`${window.location.origin}/`);
     const cleanup = initialiseSpinner(root.current);
     setGateTarget(root.current.querySelector(".account-gate-slot"));
     return cleanup;
@@ -26,6 +28,8 @@ export function HackathonSite({ clerkConfigured }: { clerkConfigured: boolean })
   return (
     <ClerkProvider
       appearance={{ variables: { colorPrimary: "#254733", colorBackground: "#fffdf5" } }}
+      signInForceRedirectUrl={authReturnUrl}
+      signUpForceRedirectUrl={authReturnUrl}
     >
       {site}
       {gateTarget ? createPortal(<AccountGate configured />, gateTarget) : null}
