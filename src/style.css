@@ -22,7 +22,7 @@ main { position: relative; max-width: 1130px; margin: auto; padding: 8px 38px 70
 h1,h2,h3,h4 { font-family: var(--display); font-weight: 400; }
 h1 { font-size: clamp(39px,5.6vw,70px); letter-spacing: -.5px; line-height: 1.13; margin: 14px auto; max-width: 900px; }
 .intro p { font-size: 17px; line-height: 1.6; margin: 0; color: var(--muted); }
-.spinner-section { display: grid; grid-template-columns: 1.25fr 1fr; align-items: center; gap: 68px; margin-top: 32px; }
+.spinner-section { display: grid; grid-template-columns: 1.25fr 1fr; align-items: center; gap: 68px; margin-top: 20px; }
 .wheel-side { position: relative; min-width: 0; }
 .wheel-frame { position: relative; width: 100%; max-width: 520px; margin: auto; padding-top: 12px; }
 .wheel-disc { border-radius: 50%; overflow: hidden; box-shadow: 4px 9px 0 #42623b,0 20px 40px #25473312; }
@@ -156,7 +156,7 @@ footer a:hover { text-decoration: underline; }
 @media (max-width: 650px) {
 
   main { padding: 8px 25px 45px; } h1 { font-size: clamp(37px,10vw,54px); max-width: 340px; } .edition { font-size: 12px; } .intro p { font-size: 14px; }
-  .spinner-section { grid-template-columns: 1fr; margin-top: 30px; gap: 8px; } .wheel-side { width: 100%; max-width: 410px; margin: auto; } .wheel-sticker { font-size: 16px; padding: 12px; left: -6px; } .doodle-one { font-size: 35px; right: -6px; } .doodle-two { font-size: 26px; left: -11px; } .wheel-centre { width: 78px; height: 78px; font-size: 13px; } .centre-koda { width: 37px; height: 40px; } .wheel-caption { font-size: 11px; }
+  .spinner-section { grid-template-columns: 1fr; margin-top: 22px; gap: 8px; } .wheel-side { width: 100%; max-width: 410px; margin: auto; } .wheel-sticker { font-size: 16px; padding: 12px; left: -6px; } .doodle-one { font-size: 35px; right: -6px; } .doodle-two { font-size: 26px; left: -11px; } .wheel-centre { width: 78px; height: 78px; font-size: 13px; } .centre-koda { width: 37px; height: 40px; } .wheel-caption { font-size: 11px; }
   .control-side { width: 100%; max-width: 410px; margin: auto; } .koda-host { height: 210px; } .koda { width: 194px; height: 207px; right: 4px; } .speech-bubble { left: 0; width: calc(100% - 170px); top: 35px; font-size: 18px; } .koda-spark { right: -4px; }
   .track-invitation { gap: 14px; } .track-invitation strong { font-size: 21px; } .track-section { margin-top: 85px; } .track-heading h2 { font-size: 48px; } .track-heading p { font-size: 18px; } .track-lead { font-size: 15px; }
   .trail-line { display: none; } .trail-stop { grid-template-columns: 1fr; gap: 22px; padding: 35px 0; } .trail-art img { width: 164px; height: 190px; } .art-orbit { width: 200px; height: 200px; } .stop-two .trail-art,.stop-two .trail-copy { order: initial; } .trail-copy { max-width: 390px; margin: auto; text-align: center; } .trail-copy h3 { font-size: 33px; } .trail-copy p { font-size: 15px; }
