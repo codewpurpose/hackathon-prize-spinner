@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { SESSION_COOKIE, claimSpin, getSpin, hasValidOrigin, readSession } from "../../../server/auth";
+import { SESSION_COOKIE, claimSpin, getSpin, hasValidOrigin, readSession, sendChoiceEmail } from "../../../server/auth";
+import { choices } from "../../../wheel";
 
 export const runtime = "nodejs";
 
@@ -35,7 +36,8 @@ export async function POST(request: Request) {
     const session = await currentSession();
     if (!session) return reply({ error: "verification_required" }, 401);
     const result = await claimSpin(session.email, session);
-    return reply(result, result.alreadySpun ? 409 : 200);
+    const emailSent = result.alreadySpun ? undefined : await sendChoiceEmail(session, choices[result.choiceIndex]);
+    return reply({ ...result, ...(emailSent === undefined ? {} : { emailSent }) }, result.alreadySpun ? 409 : 200);
   } catch {
     return reply({ error: "service_unavailable" }, 503);
   }

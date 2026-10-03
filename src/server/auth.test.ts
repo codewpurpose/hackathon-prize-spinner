@@ -3,15 +3,20 @@ import { test } from "node:test";
 import {
   CODE_TTL_SECONDS,
   SESSION_TTL_SECONDS,
-  claimUniqueSpin,
+  choiceEmailHtml,
+  challengeKey,
   escapeHtml,
   hasValidOrigin,
   makeCode,
   newChallenge,
+  newSessionToken,
   normalizeEmail,
   normalizeName,
+  requestIp,
+  sessionKey,
+  sendChoiceEmail,
+  spinKey,
   validCode,
-  type SpinStore,
 } from "./auth.ts";
 
 process.env.AUTH_SECRET ??= "test-only-auth-secret-that-is-at-least-32-chars";
@@ -45,6 +50,46 @@ test("escapes visitor names before inserting them into the email template", () =
   assert.equal(escapeHtml(`<img src="x" onerror='bad'>`), "&lt;img src=&quot;x&quot; onerror=&#39;bad&#39;&gt;");
 });
 
+test("escapes visitor details in the result email", () => {
+  const html = choiceEmailHtml(`<img src=x onerror=alert(1)>`, "Choice K");
+  assert.ok(html.includes("&lt;img src=x onerror=alert(1)&gt;"));
+  assert.ok(html.includes("Choice K"));
+  assert.ok(!html.includes("<img src=x"));
+});
+
+test("sends the selected result through Resend with a safe retry key", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalApiKey = process.env.RESEND_API_KEY;
+  const originalFrom = process.env.RESEND_FROM_EMAIL;
+  let requestBody: Record<string, unknown> | undefined;
+  let idempotencyKey: string | null = null;
+  process.env.RESEND_API_KEY = "re_test_key";
+  process.env.RESEND_FROM_EMAIL = "CWP <spins@example.org>";
+  globalThis.fetch = (async (input, init) => {
+    assert.match(String(input), /api\.resend\.com\/emails/);
+    requestBody = JSON.parse(String(init?.body)) as Record<string, unknown>;
+    idempotencyKey = new Headers(init?.headers).get("idempotency-key");
+    return new Response(JSON.stringify({ id: "email-test-id" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }) as typeof fetch;
+
+  try {
+    assert.equal(await sendChoiceEmail({ name: "Ada", email: "ada@example.org" }, "Choice K"), true);
+    assert.deepEqual(requestBody?.to, ["ada@example.org"]);
+    assert.equal(requestBody?.subject, "Your CodeWithPurpose Hackathon choice: Choice K");
+    assert.match(String(requestBody?.html), /Choice K/);
+    assert.match(idempotencyKey ?? "", /^cwp-spin-result\/[0-9a-f-]{36}$/);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalApiKey === undefined) delete process.env.RESEND_API_KEY;
+    else process.env.RESEND_API_KEY = originalApiKey;
+    if (originalFrom === undefined) delete process.env.RESEND_FROM_EMAIL;
+    else process.env.RESEND_FROM_EMAIL = originalFrom;
+  }
+});
+
 test("checks request origin against the public host behind a local or production proxy", () => {
   const local = new Request("http://0.0.0.0:5173/api/auth/request-code/", {
     method: "POST",
@@ -58,24 +103,30 @@ test("checks request origin against the public host behind a local or production
   assert.equal(hasValidOrigin(crossSite), false);
 });
 
-test("atomically grants one spin and returns the same result to concurrent retries", async () => {
-  const values = new Map<string, string>();
-  const store: SpinStore = {
-    async get<T>(key: string) { return (values.get(key) ?? null) as T | null; },
-    async set(key, value) {
-      if (values.has(key)) return null;
-      values.set(key, value);
-      return "OK";
-    },
-  };
-  const picks = [4, 9];
-  const [first, concurrent] = await Promise.all([
-    claimUniqueSpin(store, "spin:test", 3600, () => picks[0]),
-    claimUniqueSpin(store, "spin:test", 3600, () => picks[1]),
-  ]);
-  assert.equal(first.choiceIndex, concurrent.choiceIndex);
-  assert.deepEqual([first.alreadySpun, concurrent.alreadySpun].sort(), [false, true]);
-  assert.ok([4, 9].includes(first.choiceIndex));
-  const retry = await claimUniqueSpin(store, "spin:test", 3600, () => 2);
-  assert.deepEqual(retry, { choiceIndex: first.choiceIndex, alreadySpun: true });
+test("uses the client IP set by the hosting edge for request limits", () => {
+  const vercel = new Request("https://example.org/api/auth/request-code/", {
+    headers: { "x-vercel-id": "sfo1::test", "x-forwarded-for": "203.0.113.4, 10.0.0.1", "x-real-ip": "198.51.100.9" },
+  });
+  assert.equal(requestIp(vercel), "203.0.113.4");
+
+  const untrusted = new Request("https://example.org/api/auth/request-code/", {
+    headers: { "x-forwarded-for": "203.0.113.4", "x-real-ip": "198.51.100.9" },
+  });
+  assert.equal(requestIp(untrusted), null);
+
+  const cloudflare = new Request("https://example.org/api/auth/request-code/", {
+    headers: { "cf-connecting-ip": "203.0.113.8", "x-forwarded-for": "198.51.100.1" },
+  });
+  assert.equal(requestIp(cloudflare), "203.0.113.8");
+});
+
+test("database keys conceal visitor email and cookie secrets", () => {
+  process.env.AUTH_SECRET = "test-only-auth-secret-that-is-at-least-32-chars";
+  const email = "ada@example.org";
+  const token = newSessionToken();
+  assert.match(challengeKey(email), /^otp:[a-f0-9]{64}$/);
+  assert.match(spinKey(email), /^spin:[a-f0-9]{64}$/);
+  assert.match(sessionKey(token), /^session:[a-f0-9]{64}$/);
+  assert.equal(challengeKey(email).includes(email), false);
+  assert.equal(sessionKey(token).includes(token), false);
 });

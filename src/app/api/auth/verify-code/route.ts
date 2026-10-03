@@ -4,15 +4,14 @@ import {
   SESSION_COOKIE,
   SESSION_TTL_SECONDS,
   challengeKey,
-  getRedis,
   hasValidOrigin,
   newSessionToken,
   normalizeEmail,
   rateLimit,
   requestIp,
-  sessionKey,
   verifyChallenge,
   validCode,
+  writeSession,
 } from "../../../../server/auth";
 
 export const runtime = "nodejs";
@@ -48,7 +47,7 @@ export async function POST(request: Request) {
 
     const token = newSessionToken();
     const session = { ...verification.identity, expiresAt: Date.now() + SESSION_TTL_SECONDS * 1000 };
-    await getRedis().set(sessionKey(token), session, { ex: SESSION_TTL_SECONDS });
+    await writeSession(token, session);
     const jar = await cookies();
     jar.set(SESSION_COOKIE, token, {
       httpOnly: true,

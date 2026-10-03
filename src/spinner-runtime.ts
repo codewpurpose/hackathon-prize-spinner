@@ -1,7 +1,7 @@
 import { animate, inView } from 'motion';
 import { choices, landingRotation } from './wheel';
 
-type SpinState = { verified?: boolean; hasSpun?: boolean; choiceIndex?: number; alreadySpun?: boolean; error?: string };
+type SpinState = { verified?: boolean; hasSpun?: boolean; choiceIndex?: number; alreadySpun?: boolean; emailSent?: boolean; error?: string };
 
 export function initialiseSpinner(root: HTMLDivElement) {
   const abort = new AbortController();
@@ -258,7 +258,9 @@ export function initialiseSpinner(root: HTMLDivElement) {
       rotation = next % 360;
       displayResult(index, false);
       celebrate();
-      setStatus('Your one spin is complete.', false);
+      setStatus(state.emailSent
+        ? 'Your one spin is complete. We sent your choice by email.'
+        : 'Your spin is complete, but we couldn’t send the email. Your result is saved here.', !state.emailSent);
     } catch {
       if (!abort.signal.aborted) {
         showSpinMessage('We couldn’t reach the spinner.');

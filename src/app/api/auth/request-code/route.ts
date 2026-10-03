@@ -4,8 +4,8 @@ import {
   CODE_TTL_SECONDS,
   RESEND_COOLDOWN_SECONDS,
   challengeKey,
+  deleteChallenge,
   emailHtml,
-  getRedis,
   getResend,
   hasValidOrigin,
   newChallenge,
@@ -13,6 +13,7 @@ import {
   normalizeName,
   rateLimit,
   requestIp,
+  storeChallenge,
 } from "../../../../server/auth";
 
 export const runtime = "nodejs";
@@ -53,9 +54,7 @@ export async function POST(request: Request) {
     }
 
     const challenge = newChallenge({ name, email });
-    const key = challengeKey(email);
-    const redis = getRedis();
-    await redis.set(key, challenge.stored, { ex: CODE_TTL_SECONDS });
+    await storeChallenge(email, challenge.stored);
     let error;
     try {
       ({ error } = await resend.emails.send({
@@ -66,11 +65,11 @@ export async function POST(request: Request) {
         text: `Hi ${name},\n\nEnter this one-time code on the CodeWithPurpose Hackathon spinner page to unlock your one spin:\n\n${challenge.code}\n\nThis code expires in 15 minutes. If it expires, request a new one from the spinner page.\n\nIf you didn’t request this code, you can safely ignore this email.`,
       }, { idempotencyKey: `cwp-wheel-code/${randomUUID()}` }));
     } catch {
-      await redis.del(key);
+      await deleteChallenge(email);
       return reply({ error: "email_unavailable" }, 502);
     }
     if (error) {
-      await redis.del(key);
+      await deleteChallenge(email);
       return reply({ error: "email_unavailable" }, 502);
     }
     return reply({ ok: true, expiresInSeconds: CODE_TTL_SECONDS, resendAfterSeconds: RESEND_COOLDOWN_SECONDS });

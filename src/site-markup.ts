@@ -16,7 +16,7 @@ const segments = choices.map((choice, index) => {
 export const siteMarkup = `
   <header class="site-header">
     <a class="brand" href="https://codewithpurpose.org" aria-label="CodeWithPurpose home"><img src="/koala/koala-wave.png" alt="" width="45" height="48"/><span class="brand-name">CWP<span class="brand-event">Hackathon</span></span></a>
-    <nav aria-label="Main navigation"><a href="#spinner">Spin</a><a href="#track">The track</a></nav>
+    <nav aria-label="Main navigation"><a href="#spinner">Spin</a><a href="#track">The track</a><a href="/agents/">For AI agents</a></nav>
   </header>
   <main><div class="confetti-stage" aria-hidden="true"></div><div class="floating-leaves" aria-hidden="true"><span>❧</span><span>❧</span><span>✧</span></div>
     <section class="intro" aria-labelledby="page-title">
