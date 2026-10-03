@@ -59,10 +59,26 @@ export function normalizeName(name: unknown) {
   return normalized;
 }
 
-export function spinKey(userId: string) {
+function accountDigest(userId: string) {
   if (!userId || userId.length > 256) throw new Error("Invalid CWP account ID");
-  const digest = createHmac("sha256", authSecret()).update(`user:${userId}`).digest("hex");
-  return `spin:${digest}`;
+  return createHmac("sha256", authSecret()).update(`user:${userId}`).digest("hex");
+}
+
+export function spinKey(userId: string) {
+  return `spin:v2:${accountDigest(userId)}`;
+}
+
+function legacySpinKey(userId: string) {
+  return `spin:${accountDigest(userId)}`;
+}
+
+function mapLegacyChoice(index: number) {
+  const previousChoices = [0, 1, 3];
+  return previousChoices[index % previousChoices.length];
+}
+
+function isLegacyChoice(index: unknown): index is number {
+  return Number.isInteger(index) && typeof index === "number" && index >= 0 && index < 11;
 }
 
 export function verifiedIdentity(input: {
@@ -131,18 +147,26 @@ export async function sendChoiceEmail(identity: Identity, choice: string) {
 
 export async function getSpin(userId: string) {
   const value = await supabaseRpc<{ choiceIndex?: number } | null>("cwp_state_get", { p_key: spinKey(userId) });
-  // Existing 24-hour records may still contain one of the retired A–K indices.
-  return value && Number.isInteger(value.choiceIndex) && value.choiceIndex! >= 0 && value.choiceIndex! < 11
-    ? value.choiceIndex! % choices.length
-    : null;
+  if (value && Number.isInteger(value.choiceIndex) && value.choiceIndex! >= 0 && value.choiceIndex! < choices.length) {
+    return value.choiceIndex!;
+  }
+
+  // Keep results from the previous wheel layouts intact until their 24-hour expiry.
+  const legacy = await supabaseRpc<{ choiceIndex?: number } | null>("cwp_state_get", { p_key: legacySpinKey(userId) });
+  return legacy && isLegacyChoice(legacy.choiceIndex) ? mapLegacyChoice(legacy.choiceIndex) : null;
 }
 
 export async function claimSpin(userId: string) {
+  const legacy = await supabaseRpc<{ choiceIndex?: number } | null>("cwp_state_get", { p_key: legacySpinKey(userId) });
+  if (legacy) {
+    if (!isLegacyChoice(legacy.choiceIndex)) throw new Error("Supabase returned an invalid saved spin result");
+    return { choiceIndex: mapLegacyChoice(legacy.choiceIndex), alreadySpun: true };
+  }
+
   const result = await supabaseRpc<{ choiceIndex: number; alreadySpun: boolean }>("cwp_claim_spin", {
     p_key: spinKey(userId), p_candidate: randomInt(0, choices.length), p_ttl_seconds: SPIN_WINDOW_SECONDS,
   });
-  // Preserve a participant's already-claimed 24-hour result across this choice update.
-  const maxIndex = result.alreadySpun ? 10 : choices.length - 1;
+  const maxIndex = choices.length - 1;
   if (typeof result.alreadySpun !== "boolean" || !Number.isInteger(result.choiceIndex) || result.choiceIndex < 0 || result.choiceIndex > maxIndex) throw new Error("Supabase returned an invalid spin result");
-  return { ...result, choiceIndex: result.choiceIndex % choices.length };
+  return result;
 }

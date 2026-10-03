@@ -1,6 +1,6 @@
 # CWP Hackathon Prize Spinner
 
-A responsive CodeWithPurpose raffle spinner with three equally likely prizes: Sour Patch, Swedish Fish, or an Arduino kit, keyboard, and headphones. Built with Next.js 16 App Router, React 19 and TypeScript. Colours, logo and Koda koala illustrations reference the main CWP website. The open woodland interface uses locally bundled Chewy and Atkinson Hyperlegible fonts, native HTML buttons and Motion animations. Koda watches spins from a branch and celebrates results with a heart. Fonts are bundled locally.
+A responsive CodeWithPurpose raffle spinner with Sour Patch, Swedish Fish, a CWP shirt, and three raffle-ticket slices for the Arduino kit, keyboard, and headphones drawings. The ticket slices occupy half the wheel; each other option occupies one sixth. Built with Next.js 16 App Router, React 19 and TypeScript. Colours, logo and Koda koala illustrations reference the main CWP website. The open woodland interface uses locally bundled Chewy and Atkinson Hyperlegible fonts, native HTML buttons and Motion animations. Koda watches spins from a branch and celebrates results with a heart. Fonts are bundled locally.
 
 ## Development
 
@@ -23,7 +23,7 @@ The production build is generated in `.next/`. Deploy to a Next.js-compatible ho
 
 ## Behaviour
 
-Sign in with a verified CWP account to spin once every 24 hours. The server chooses uniformly from the three raffle prizes, saves the result against the account, animates the wheel to the matching prize, and emails the result to the account's verified primary address. The stored result expires after 24 hours.
+Sign in with a verified CWP account to spin once every 24 hours. The server chooses uniformly from the six wheel slices, saves the result against the account, animates the wheel to the matching option, and emails the result to the account's verified primary address. Because three slices award raffle tickets, a ticket is selected half the time. The stored result expires after 24 hours.
 
 ## Account, result email, and storage setup
 

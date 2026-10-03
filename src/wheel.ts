@@ -1,7 +1,10 @@
 export const choices = [
   "Sour Patch",
   "Swedish Fish",
-  "Arduino kit, Keyboard, and Headphones",
+  "CWP Shirt",
+  "Raffle Ticket",
+  "Raffle Ticket",
+  "Raffle Ticket",
 ] as const;
 export const segmentAngle = 360 / choices.length;
 

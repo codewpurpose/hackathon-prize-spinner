@@ -2,16 +2,19 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { choices, landingRotation, randomChoice, segmentAngle } from './wheel.ts';
 
-test('wheel presents the three raffle prizes at equal odds', () => {
+test('wheel presents the treats, shirt, and three raffle-ticket slices', () => {
   assert.deepEqual(choices, [
     'Sour Patch',
     'Swedish Fish',
-    'Arduino kit, Keyboard, and Headphones',
+    'CWP Shirt',
+    'Raffle Ticket',
+    'Raffle Ticket',
+    'Raffle Ticket',
   ]);
-  assert.equal(segmentAngle, 120);
+  assert.equal(segmentAngle, 60);
 });
 
-test('all three raffle choices land under the pointer over repeated spins', () => {
+test('all six wheel slices land under the pointer over repeated spins', () => {
   let current = 0;
   for (let round = 0; round < 3; round++) {
     for (let index = 0; index < choices.length; index++) {
@@ -25,7 +28,7 @@ test('all three raffle choices land under the pointer over repeated spins', () =
 });
 
 test('random selection reaches each raffle prize and rejects biased tail values', () => {
-  for (let index = 0; index < 3; index++) assert.equal(randomChoice(() => index), index);
+  for (let index = 0; index < choices.length; index++) assert.equal(randomChoice(() => index), index);
   const values = [2 ** 32 - 1, 3];
-  assert.equal(randomChoice(() => values.shift()!), 0);
+  assert.equal(randomChoice(() => values.shift()!), 3);
 });

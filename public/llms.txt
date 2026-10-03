@@ -18,7 +18,7 @@ This guide is published at the root of the hackathon site so people and compatib
 
 **What the site is**
 
-The homepage is a responsive raffle spinner and an introduction to the CWP Build for Access track at Dublin Hacx. The wheel displays three equally likely prizes: Sour Patch, Swedish Fish, and a prize bundle containing an Arduino kit, keyboard, and headphones. Participants sign in with a CWP account with a verified primary email to unlock one spin every 24 hours. The server chooses the result uniformly, saves it against the account for 24 hours, and emails it to the verified primary address. The wheel animates the result beneath a fixed pointer.
+The homepage is a responsive raffle spinner and an introduction to the CWP Build for Access track at Dublin Hacx. The six equal wheel slices are Sour Patch, Swedish Fish, a CWP shirt, and three Raffle Ticket slices. The tickets are for the Arduino kit, keyboard, and headphones drawings. Participants sign in with a CWP account with a verified primary email to unlock one spin every 24 hours. The server chooses one of the six slices uniformly, saves the result against the account for 24 hours, and emails it to the verified primary address. The wheel animates the result beneath a fixed pointer.
 
 A small illustrated koala named Koda appears throughout the experience. Koda is part of the site's friendly visual language and reacts to interaction. The rest of the site uses an open woodland setting, locally bundled Chewy and Atkinson Hyperlegible fonts, hand-authored markup, and native HTML buttons. The visual identity is specific to this event page; teams should feel free to make their own product identities rather than copying the spinner's illustrations or appearance.
 
@@ -122,7 +122,7 @@ The facts below reflect the current hackathon page and project README at the tim
 - Track submission items: Working project, short description, public repository, and live demo or a 2–3 minute video.
 - Stated deadline: 8:00 PM. The date and timezone are not stated on this page.
 - Rubric: 30 points purpose and impact, 25 accessibility and user understanding, 25 technical execution, 20 demonstration and evidence.
-- Raffle spinner: Three equally likely prizes (Sour Patch, Swedish Fish, or an Arduino kit, keyboard, and headphones); one spin per verified CWP account every 24 hours.
+- Raffle spinner: Six equally likely slices: Sour Patch, Swedish Fish, a CWP shirt, and three Raffle Ticket slices for the Arduino kit, keyboard, and headphones drawings. One spin per verified CWP account every 24 hours.
 - Site owner and organiser context: CodeWithPurpose, a student-run nonprofit making coding education free.
 
 Do not invent an event date, timezone, venue address, mentor schedule, sponsor, winner, application form, or eligibility condition. If the challenge brief is unavailable, explain the missing detail and direct the team to ask an organiser.

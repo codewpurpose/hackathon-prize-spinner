@@ -46,7 +46,7 @@ test("account spin keys are stable, opaque, and distinct per CWP account", () =>
   const first = spinKey("user_123");
   assert.equal(spinKey("user_123"), first);
   assert.notEqual(spinKey("user_456"), first);
-  assert.match(first, /^spin:[a-f0-9]{64}$/);
+  assert.match(first, /^spin:v2:[a-f0-9]{64}$/);
   assert.equal(first.includes("user_123"), false);
 });
 
@@ -56,6 +56,9 @@ test("claims one account spin with a fresh 24-hour expiry and validates the choi
   globalThis.fetch = (async (input, init) => {
     const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
     requests.push({ url: String(input), body });
+    if (String(input).endsWith("/rpc/cwp_state_get")) {
+      return new Response("null", { status: 200, headers: { "Content-Type": "application/json" } });
+    }
     return new Response(JSON.stringify({ choiceIndex: 2, alreadySpun: false }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
@@ -66,12 +69,14 @@ test("claims one account spin with a fresh 24-hour expiry and validates the choi
 
   try {
     assert.deepEqual(await claimSpin("user_123"), { choiceIndex: 2, alreadySpun: false });
-    assert.equal(requests.length, 1);
-    assert.match(requests[0].url, /\/rpc\/cwp_claim_spin$/);
-    assert.equal(requests[0].body.p_key, spinKey("user_123"));
-    assert.equal(requests[0].body.p_ttl_seconds, SPIN_WINDOW_SECONDS);
-    assert.ok(Number.isInteger(requests[0].body.p_candidate));
-    assert.ok((requests[0].body.p_candidate as number) >= 0 && (requests[0].body.p_candidate as number) <= 2);
+    assert.equal(requests.length, 2);
+    assert.match(requests[0].url, /\/rpc\/cwp_state_get$/);
+    assert.match(String(requests[0].body.p_key), /^spin:[a-f0-9]{64}$/);
+    assert.match(requests[1].url, /\/rpc\/cwp_claim_spin$/);
+    assert.equal(requests[1].body.p_key, spinKey("user_123"));
+    assert.equal(requests[1].body.p_ttl_seconds, SPIN_WINDOW_SECONDS);
+    assert.ok(Number.isInteger(requests[1].body.p_candidate));
+    assert.ok((requests[1].body.p_candidate as number) >= 0 && (requests[1].body.p_candidate as number) <= 5);
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.SUPABASE_URL;
@@ -84,6 +89,9 @@ test("loads only the saved result for the authenticated account ID", async () =>
   let requestBody: Record<string, unknown> | undefined;
   globalThis.fetch = (async (_input, init) => {
     requestBody = JSON.parse(String(init?.body)) as Record<string, unknown>;
+    if (requestBody.p_key === spinKey("user_123")) {
+      return new Response("null", { status: 200, headers: { "Content-Type": "application/json" } });
+    }
     return new Response(JSON.stringify({ choiceIndex: 10 }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
@@ -94,7 +102,7 @@ test("loads only the saved result for the authenticated account ID", async () =>
 
   try {
     assert.equal(await getSpin("user_123"), 1);
-    assert.equal(requestBody?.p_key, spinKey("user_123"));
+    assert.match(String(requestBody?.p_key), /^spin:[a-f0-9]{64}$/);
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.SUPABASE_URL;
@@ -102,17 +110,44 @@ test("loads only the saved result for the authenticated account ID", async () =>
   }
 });
 
-test("maps a previously saved A–K spin to the new raffle prize for the existing 24-hour window", async () => {
+test("loads a saved result in the current six-slice format without legacy conversion", async () => {
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = (async () => new Response(JSON.stringify({ choiceIndex: 10, alreadySpun: true }), {
-    status: 200,
-    headers: { "Content-Type": "application/json" },
-  })) as typeof fetch;
+  globalThis.fetch = (async (_input, init) => {
+    const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+    assert.equal(body.p_key, spinKey("user_123"));
+    return new Response(JSON.stringify({ choiceIndex: 2 }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }) as typeof fetch;
   process.env.SUPABASE_URL = "https://example.supabase.co";
   process.env.SUPABASE_SECRET_KEY = "test-secret";
 
   try {
-    assert.deepEqual(await claimSpin("user_123"), { choiceIndex: 1, alreadySpun: true });
+    assert.equal(await getSpin("user_123"), 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.SUPABASE_URL;
+    delete process.env.SUPABASE_SECRET_KEY;
+  }
+});
+
+test("preserves an existing three-prize result through the new wheel layout", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async (_input, init) => {
+    const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+    return new Response(body.p_key === spinKey("user_123")
+      ? "null"
+      : JSON.stringify({ choiceIndex: 2 }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+  }) as typeof fetch;
+  process.env.SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SECRET_KEY = "test-secret";
+
+  try {
+    assert.deepEqual(await claimSpin("user_123"), { choiceIndex: 3, alreadySpun: true });
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.SUPABASE_URL;
