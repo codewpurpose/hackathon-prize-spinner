@@ -165,18 +165,18 @@ export function initialiseSpinner(root: HTMLDivElement) {
     result.replaceChildren();
     const letter = document.createElement('span');
     letter.className = 'result-letter';
-    letter.textContent = choice.slice(-1);
+    letter.textContent = String(index + 1);
     const heading = document.createElement('h2');
     heading.textContent = choice;
     const description = document.createElement('p');
     description.textContent = returning
       ? 'Your saved CWP account spin is still here.'
-      : 'That’s your spin for the next 24 hours. This choice is yours!';
+      : 'That’s your raffle result for the next 24 hours.';
     result.append(letter, heading, description);
     buttonLabel.textContent = 'Spin used';
     koda.src = '/koala/koala-heart.png';
     koda.alt = 'Koda celebrating with a green heart';
-    kodaMessage.textContent = returning ? `${choice} is still yours!` : `${choice}! See you tomorrow.`;
+    kodaMessage.textContent = returning ? `${choice} is still yours!` : `Your raffle result: ${choice}!`;
     host.classList.remove('spinning');
     host.classList.add('celebrating');
     section.classList.add('is-spent');

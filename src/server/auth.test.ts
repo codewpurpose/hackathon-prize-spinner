@@ -56,7 +56,7 @@ test("claims one account spin with a fresh 24-hour expiry and validates the choi
   globalThis.fetch = (async (input, init) => {
     const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
     requests.push({ url: String(input), body });
-    return new Response(JSON.stringify({ choiceIndex: 4, alreadySpun: false }), {
+    return new Response(JSON.stringify({ choiceIndex: 2, alreadySpun: false }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
@@ -65,13 +65,13 @@ test("claims one account spin with a fresh 24-hour expiry and validates the choi
   process.env.SUPABASE_SECRET_KEY = "test-secret";
 
   try {
-    assert.deepEqual(await claimSpin("user_123"), { choiceIndex: 4, alreadySpun: false });
+    assert.deepEqual(await claimSpin("user_123"), { choiceIndex: 2, alreadySpun: false });
     assert.equal(requests.length, 1);
     assert.match(requests[0].url, /\/rpc\/cwp_claim_spin$/);
     assert.equal(requests[0].body.p_key, spinKey("user_123"));
     assert.equal(requests[0].body.p_ttl_seconds, SPIN_WINDOW_SECONDS);
     assert.ok(Number.isInteger(requests[0].body.p_candidate));
-    assert.ok((requests[0].body.p_candidate as number) >= 0 && (requests[0].body.p_candidate as number) <= 10);
+    assert.ok((requests[0].body.p_candidate as number) >= 0 && (requests[0].body.p_candidate as number) <= 2);
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.SUPABASE_URL;
@@ -93,8 +93,26 @@ test("loads only the saved result for the authenticated account ID", async () =>
   process.env.SUPABASE_SECRET_KEY = "test-secret";
 
   try {
-    assert.equal(await getSpin("user_123"), 10);
+    assert.equal(await getSpin("user_123"), 1);
     assert.equal(requestBody?.p_key, spinKey("user_123"));
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.SUPABASE_URL;
+    delete process.env.SUPABASE_SECRET_KEY;
+  }
+});
+
+test("maps a previously saved A–K spin to the new raffle prize for the existing 24-hour window", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async () => new Response(JSON.stringify({ choiceIndex: 10, alreadySpun: true }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  })) as typeof fetch;
+  process.env.SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SECRET_KEY = "test-secret";
+
+  try {
+    assert.deepEqual(await claimSpin("user_123"), { choiceIndex: 1, alreadySpun: true });
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.SUPABASE_URL;
@@ -104,9 +122,9 @@ test("loads only the saved result for the authenticated account ID", async () =>
 
 test("escapes names and choice text before inserting them into result email HTML", () => {
   assert.equal(escapeHtml(`<img src="x" onerror='bad'>`), "&lt;img src=&quot;x&quot; onerror=&#39;bad&#39;&gt;");
-  const html = choiceEmailHtml(`<img src=x onerror=alert(1)>`, "Choice K");
+  const html = choiceEmailHtml(`<img src=x onerror=alert(1)>`, "Swedish Fish");
   assert.ok(html.includes("&lt;img src=x onerror=alert(1)&gt;"));
-  assert.ok(html.includes("Choice K"));
+  assert.ok(html.includes("Swedish Fish"));
   assert.ok(!html.includes("<img src=x"));
 });
 
@@ -129,10 +147,10 @@ test("sends the result to the verified account email through Resend", async () =
   }) as typeof fetch;
 
   try {
-    assert.equal(await sendChoiceEmail({ name: "Ada", email: "ada@example.org" }, "Choice K"), true);
+    assert.equal(await sendChoiceEmail({ name: "Ada", email: "ada@example.org" }, "Swedish Fish"), true);
     assert.deepEqual(requestBody?.to, ["ada@example.org"]);
-    assert.equal(requestBody?.subject, "Your CodeWithPurpose Hackathon choice: Choice K");
-    assert.match(String(requestBody?.html), /Choice K/);
+    assert.equal(requestBody?.subject, "Your CodeWithPurpose Hackathon raffle result: Swedish Fish");
+    assert.match(String(requestBody?.html), /Swedish Fish/);
     assert.match(idempotencyKey ?? "", /^cwp-spin-result\/[0-9a-f-]{36}$/);
   } finally {
     globalThis.fetch = originalFetch;

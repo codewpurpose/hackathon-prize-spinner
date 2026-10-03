@@ -18,7 +18,7 @@ This guide is published at the root of the hackathon site so people and compatib
 
 **What the site is**
 
-The homepage is a responsive prize spinner and an introduction to the CWP Build for Access track at Dublin Hacx. The wheel displays eleven equally likely choices, labelled A through K. Participants enter a name and email address, receive a six-digit verification code, and verify that code to unlock one spin. The server chooses the result uniformly. The browser then animates the wheel so that the result appears beneath a fixed pointer. The spinner's choices are for event interaction; they are not a project assignment, a judging score, or a track requirement.
+The homepage is a responsive raffle spinner and an introduction to the CWP Build for Access track at Dublin Hacx. The wheel displays three equally likely prizes: Sour Patch, Swedish Fish, and a prize bundle containing an Arduino kit, keyboard, and headphones. Participants sign in with a CWP account with a verified primary email to unlock one spin every 24 hours. The server chooses the result uniformly, saves it against the account for 24 hours, and emails it to the verified primary address. The wheel animates the result beneath a fixed pointer.
 
 A small illustrated koala named Koda appears throughout the experience. Koda is part of the site's friendly visual language and reacts to interaction. The rest of the site uses an open woodland setting, locally bundled Chewy and Atkinson Hyperlegible fonts, hand-authored markup, and native HTML buttons. The visual identity is specific to this event page; teams should feel free to make their own product identities rather than copying the spinner's illustrations or appearance.
 
@@ -122,16 +122,16 @@ The facts below reflect the current hackathon page and project README at the tim
 - Track submission items: Working project, short description, public repository, and live demo or a 2–3 minute video.
 - Stated deadline: 8:00 PM. The date and timezone are not stated on this page.
 - Rubric: 30 points purpose and impact, 25 accessibility and user understanding, 25 technical execution, 20 demonstration and evidence.
-- Prize spinner: Eleven equally likely choices, A through K; one verified spin per email during the 24-hour access window.
+- Raffle spinner: Three equally likely prizes (Sour Patch, Swedish Fish, or an Arduino kit, keyboard, and headphones); one spin per verified CWP account every 24 hours.
 - Site owner and organiser context: CodeWithPurpose, a student-run nonprofit making coding education free.
 
-Do not infer the prize values or meanings from the letters A–K; the wheel currently communicates the choices but not an associated prize pack in its static page copy. Do not invent an event date, timezone, venue address, mentor schedule, prize, sponsor, winner, application form, or eligibility condition. If the challenge brief is unavailable, explain the missing detail and direct the team to ask an organiser.
+Do not invent an event date, timezone, venue address, mentor schedule, sponsor, winner, application form, or eligibility condition. If the challenge brief is unavailable, explain the missing detail and direct the team to ask an organiser.
 
 **Working with this site as a coding agent**
 
 When a user asks you to modify this hackathon website, first inspect the local project instructions, source files, current changes, and package scripts. Preserve existing user work. Confirm which repository and branch you are operating in. The public hackathon repo is separate from CodeWithPurpose's main marketing and learning website. A request about this spinner and track page belongs to this hackathon project unless the user says otherwise.
 
-Make the smallest change that fulfils the request while preserving the woodland layout, Koda illustrations, equal A–K odds, and the always-on spinner animation described in the project guidance. Use native buttons for spinner actions. Keep server-rendered markup deterministic. Treat participant input as untrusted data and do not interpolate it into HTML. Avoid changing authentication, email verification, storage, or spinner mechanics when a content-only change is sufficient.
+Make the smallest change that fulfils the request while preserving the woodland layout, Koda illustrations, equal raffle prize odds, and the always-on spinner animation described in the project guidance. Use native buttons for spinner actions. Keep server-rendered markup deterministic. Treat participant input as untrusted data and do not interpolate it into HTML. Avoid changing authentication or storage when a content-only change is sufficient.
 
 The public project README explains local development, email verification setup, spinner behavior, and deployment expectations. Secrets belong in environment variables and must not be placed in public files, sample output, frontend bundles, or commits. The public SQL migration and environment example can explain setup without exposing live credentials. A coding agent should read the actual source and local `AGENTS.md` before relying on this high-level summary.
 

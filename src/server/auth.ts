@@ -1,5 +1,6 @@
 import { createHmac, randomInt, randomUUID } from "node:crypto";
 import { Resend } from "resend";
+import { choices } from "../wheel.ts";
 
 export const SPIN_WINDOW_SECONDS = 24 * 60 * 60;
 
@@ -102,8 +103,8 @@ export function choiceEmailHtml(name: string, choice: string) {
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f5f3e9;"><tr><td align="center" style="padding:36px 16px;">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background-color:#fffdf7;border:1px solid #e2e5d8;border-radius:16px;overflow:hidden;">
         <tr><td style="height:7px;background-color:#d5aa4e;font-size:0;line-height:0;">&nbsp;</td></tr>
-        <tr><td style="padding:30px 36px 8px;"><p style="margin:0;color:#526b4d;font-size:12px;font-weight:bold;letter-spacing:1.5px;line-height:18px;text-transform:uppercase;">CodeWithPurpose</p><p style="margin:6px 0 0;color:#71806b;font-size:13px;line-height:20px;">Hackathon · Your wheel result</p></td></tr>
-        <tr><td style="padding:22px 36px 30px;"><h1 style="margin:0;color:#254733;font-size:28px;line-height:36px;">Your choice is in!</h1><p style="margin:16px 0 0;color:#425347;font-size:16px;line-height:26px;">Hi ${escapedName}, your spin landed on:</p><p style="margin:20px 0;padding:20px 12px;border:1px solid #e2e7d8;border-radius:12px;background-color:#f3f4e9;color:#254733;text-align:center;font-size:34px;font-weight:bold;line-height:42px;">${escapedChoice}</p><p style="margin:0;color:#425347;font-size:14px;line-height:22px;">Keep this email as a reminder of your hackathon choice. Have fun building!</p></td></tr>
+        <tr><td style="padding:30px 36px 8px;"><p style="margin:0;color:#526b4d;font-size:12px;font-weight:bold;letter-spacing:1.5px;line-height:18px;text-transform:uppercase;">CodeWithPurpose</p><p style="margin:6px 0 0;color:#71806b;font-size:13px;line-height:20px;">Hackathon · Your raffle result</p></td></tr>
+        <tr><td style="padding:22px 36px 30px;"><h1 style="margin:0;color:#254733;font-size:28px;line-height:36px;">Your raffle result is in!</h1><p style="margin:16px 0 0;color:#425347;font-size:16px;line-height:26px;">Hi ${escapedName}, your spin landed on:</p><p style="margin:20px 0;padding:20px 12px;border:1px solid #e2e7d8;border-radius:12px;background-color:#f3f4e9;color:#254733;text-align:center;font-size:30px;font-weight:bold;line-height:38px;">${escapedChoice}</p><p style="margin:0;color:#425347;font-size:14px;line-height:22px;">Keep this email as a reminder of your hackathon raffle result.</p></td></tr>
       </table>
       <p style="margin:18px 0 0;color:#74806d;font-size:12px;line-height:18px;text-align:center;">A little creativity can make a big difference.</p>
     </td></tr></table>
@@ -118,7 +119,7 @@ export async function sendChoiceEmail(identity: Identity, choice: string) {
     const { error } = await getResend().emails.send({
       from,
       to: [identity.email],
-      subject: `Your CodeWithPurpose Hackathon choice: ${choice}`,
+      subject: `Your CodeWithPurpose Hackathon raffle result: ${choice}`,
       html: choiceEmailHtml(identity.name, choice),
       text: `Hi ${identity.name}, your CodeWithPurpose Hackathon spin landed on ${choice}. Keep this email as a reminder of your choice. Have fun building!`,
     }, { idempotencyKey: `cwp-spin-result/${randomUUID()}` });
@@ -130,15 +131,18 @@ export async function sendChoiceEmail(identity: Identity, choice: string) {
 
 export async function getSpin(userId: string) {
   const value = await supabaseRpc<{ choiceIndex?: number } | null>("cwp_state_get", { p_key: spinKey(userId) });
+  // Existing 24-hour records may still contain one of the retired A–K indices.
   return value && Number.isInteger(value.choiceIndex) && value.choiceIndex! >= 0 && value.choiceIndex! < 11
-    ? value.choiceIndex!
+    ? value.choiceIndex! % choices.length
     : null;
 }
 
 export async function claimSpin(userId: string) {
   const result = await supabaseRpc<{ choiceIndex: number; alreadySpun: boolean }>("cwp_claim_spin", {
-    p_key: spinKey(userId), p_candidate: randomInt(0, 11), p_ttl_seconds: SPIN_WINDOW_SECONDS,
+    p_key: spinKey(userId), p_candidate: randomInt(0, choices.length), p_ttl_seconds: SPIN_WINDOW_SECONDS,
   });
-  if (!Number.isInteger(result.choiceIndex) || result.choiceIndex < 0 || result.choiceIndex > 10) throw new Error("Supabase returned an invalid spin result");
-  return result;
+  // Preserve a participant's already-claimed 24-hour result across this choice update.
+  const maxIndex = result.alreadySpun ? 10 : choices.length - 1;
+  if (typeof result.alreadySpun !== "boolean" || !Number.isInteger(result.choiceIndex) || result.choiceIndex < 0 || result.choiceIndex > maxIndex) throw new Error("Supabase returned an invalid spin result");
+  return { ...result, choiceIndex: result.choiceIndex % choices.length };
 }

@@ -1,4 +1,8 @@
-export const choices = Array.from({ length: 11 }, (_, index) => `Choice ${String.fromCharCode(65 + index)}`);
+export const choices = [
+  "Sour Patch",
+  "Swedish Fish",
+  "Arduino kit, Keyboard, and Headphones",
+] as const;
 export const segmentAngle = 360 / choices.length;
 
 // Rejection sampling avoids favouring choices when dividing the uint32 range.
