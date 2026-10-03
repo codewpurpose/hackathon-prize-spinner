@@ -1,6 +1,6 @@
-import { cookies } from "next/headers";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { SESSION_COOKIE, claimSpin, getSpin, hasValidOrigin, readSession, sendChoiceEmail } from "../../../server/auth";
+import { claimSpin, getSpin, hasValidOrigin, sendChoiceEmail, verifiedIdentity } from "../../../server/auth";
 import { choices } from "../../../wheel";
 
 export const runtime = "nodejs";
@@ -11,20 +11,39 @@ function reply(body: object, status = 200) {
   return response;
 }
 
-async function currentSession() {
-  const jar = await cookies();
-  const token = jar.get(SESSION_COOKIE)?.value;
-  const session = await readSession(token);
-  if (!session && token) jar.delete(SESSION_COOKIE);
-  return session;
+async function currentIdentity() {
+  const { userId } = await auth();
+  if (!userId) return { status: "signed_out" as const };
+
+  const user = await currentUser();
+  if (!user || user.id !== userId) return { status: "signed_out" as const };
+  const primaryEmail = user.primaryEmailAddress;
+  const identity = verifiedIdentity({
+    userId,
+    name: user.fullName ?? user.firstName,
+    email: primaryEmail?.emailAddress,
+    emailVerified: primaryEmail?.verification?.status === "verified",
+  });
+  return identity ? { status: "verified" as const, identity } : { status: "email_unverified" as const };
+}
+
+function accessFailure(status: "signed_out" | "email_unverified") {
+  return status === "signed_out"
+    ? reply({ error: "authentication_required" }, 401)
+    : reply({ error: "verified_email_required" }, 403);
 }
 
 export async function GET() {
   try {
-    const session = await currentSession();
-    if (!session) return reply({ error: "verification_required" }, 401);
-    const choiceIndex = await getSpin(session.email);
-    return reply({ verified: true, hasSpun: choiceIndex !== null, ...(choiceIndex === null ? {} : { choiceIndex }) });
+    const account = await currentIdentity();
+    if (account.status !== "verified") return accessFailure(account.status);
+
+    const choiceIndex = await getSpin(account.identity.userId);
+    return reply({
+      authenticated: true,
+      hasSpun: choiceIndex !== null,
+      ...(choiceIndex === null ? {} : { choiceIndex }),
+    });
   } catch {
     return reply({ error: "service_unavailable" }, 503);
   }
@@ -33,10 +52,13 @@ export async function GET() {
 export async function POST(request: Request) {
   if (!hasValidOrigin(request)) return reply({ error: "invalid_request" }, 403);
   try {
-    const session = await currentSession();
-    if (!session) return reply({ error: "verification_required" }, 401);
-    const result = await claimSpin(session.email, session);
-    const emailSent = result.alreadySpun ? undefined : await sendChoiceEmail(session, choices[result.choiceIndex]);
+    const account = await currentIdentity();
+    if (account.status !== "verified") return accessFailure(account.status);
+
+    const result = await claimSpin(account.identity.userId);
+    const emailSent = result.alreadySpun
+      ? undefined
+      : await sendChoiceEmail(account.identity, choices[result.choiceIndex]);
     return reply({ ...result, ...(emailSent === undefined ? {} : { emailSent }) }, result.alreadySpun ? 409 : 200);
   } catch {
     return reply({ error: "service_unavailable" }, 503);

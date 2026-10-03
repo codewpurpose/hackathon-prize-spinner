@@ -15,6 +15,7 @@ button:focus-visible,a:focus-visible,.koda:focus-visible { outline: 3px solid #3
 .site-header nav { display: flex; align-items: center; gap: 30px; }
 .site-header nav a { padding: 12px 0; font-size: 15px; text-decoration-thickness: 2px; text-underline-offset: 7px; }
 .site-header nav a:hover { text-decoration: underline; }
+.site-header nav .nav-quiet { color: #52624f; font-size: 13px; }
 main { position: relative; max-width: 1130px; margin: auto; padding: 8px 38px 70px; }
 .intro { text-align: center; position: relative; }
 .edition { font-size: 14px; color: #52624f; }
@@ -35,7 +36,15 @@ h1 { font-size: clamp(39px,5.6vw,70px); letter-spacing: -.5px; line-height: 1.13
 .doodle { position: absolute; pointer-events: none; }
 .doodle-one { right: -14px; top: -15px; font-size: 47px; animation: sparkle 3s ease-in-out infinite; }
 .doodle-two { left: -18px; bottom: 27px; font-size: 34px; color: #67976d; }
-.wheel-caption { text-align: center; font-size: 12px; color: var(--muted); margin: 28px 0 0; }
+.wheel-controls { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 12px; margin: 22px 0 0; }
+.wheel-caption { text-align: center; font-size: 12px; color: var(--muted); margin: 0; }
+.sound-toggle { display: inline-flex; align-items: center; gap: 6px; min-height: 31px; padding: 4px 10px; border: 1.5px solid #56704d; border-radius: 46% 54% 49% 51% / 48% 42% 58% 52%; background: #fff5cf; box-shadow: 1px 2px 0 #42623b; color: #31533a; font-family: var(--display); font-size: 13px; line-height: 1; transform: rotate(-1deg); }
+.sound-toggle:hover { background: #ffe6a4; transform: rotate(0) translateY(-1px); }
+.sound-toggle svg { width: 16px; height: 16px; }
+.sound-toggle .sound-slash { display: none; }
+.sound-toggle.is-muted .sound-wave { display: none; }
+.sound-toggle.is-muted .sound-slash { display: block; }
+.sound-toggle:focus-visible { outline: 3px solid #377d54; outline-offset: 3px; }
 .control-side { min-width: 0; }
 .spinner-section.is-locked .koda-host,.spinner-section.is-locked .result-panel { display: none; }
 .spinner-section.is-locked { align-items: start; }
@@ -45,17 +54,14 @@ h1 { font-size: clamp(39px,5.6vw,70px); letter-spacing: -.5px; line-height: 1.13
 .gate-eyebrow { color: #52624f; font-size: 13px; }
 .access-gate h2 { margin: 3px 0 4px; font-size: 34px; }
 .gate-intro { max-width: 330px; margin: 0 auto 10px; color: #52624f; font-size: 15px; line-height: 1.45; }
-.identity-form,.code-form { display: grid; grid-template-columns: 1fr; gap: 4px; text-align: left; }
-.identity-form label,.code-form label { margin-top: 5px; color: #254733; font-size: 14px; font-weight: 700; }
-.identity-form input,.code-form input { width: 100%; min-height: 42px; border: 1.5px solid #b5bda6; border-radius: 8px; background: #fffbf5; padding: 8px 12px; color: #254733; font: inherit; }
-.code-form input { text-align: center; font-size: 24px; letter-spacing: .25em; }
-.identity-form[hidden],.code-form[hidden] { display: none; }
-.identity-form input:focus,.code-form input:focus { outline: 3px solid #7d9a77; outline-offset: 2px; }
-.gate-button { min-height: 45px; margin-top: 7px; border: 1px solid #254733; border-radius: 8px; background: #254733; color: #fffdf2; font-weight: 700; }
+.account-actions { display: grid; gap: 7px; }
+.gate-button { width: 100%; min-height: 45px; margin-top: 7px; border: 1px solid #254733; border-radius: 8px; background: #254733; color: #fffdf2; font-weight: 700; }
+.gate-button:hover { background: #365c41; }
 .gate-button:disabled { opacity: .65; cursor: wait; }
-.resend-button,.change-email { min-height: 36px; border: 0; background: transparent; color: #365c41; text-decoration: underline; text-underline-offset: 3px; }
-.resend-button:disabled { color: #697462; text-decoration: none; cursor: default; }
-.code-countdown { margin: 2px 0; text-align: center; color: #52624f; font-size: 13px; }
+.account-signup { min-height: 38px; border: 0; background: transparent; color: #365c41; text-decoration: underline; text-underline-offset: 3px; }
+.account-loading { margin: 8px 0; color: #52624f; font-size: 14px; line-height: 1.5; }
+.account-session { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 42px; margin: 9px 0; }
+.account-email { max-width: calc(100% - 52px); overflow-wrap: anywhere; color: #365c41; font-size: 13px; line-height: 1.45; }
 .gate-status { min-height: 20px; margin: 8px 0; color: #8c3e32; font-size: 14px; }
 .gate-status:empty { display: none; }
 .gate-status.is-success { color: #365c41; }
@@ -194,6 +200,6 @@ footer a:hover { text-decoration: underline; }
   .brand img { width: 36px; height: 39px; }
   .brand-name { font-size: 29px; gap: 5px; flex-direction: column; }
   .brand-event { font-size: 11px; }
-  .site-header nav { gap: 20px; }
+  .site-header nav { gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
   .site-header nav a { font-size: 13px; }
 }

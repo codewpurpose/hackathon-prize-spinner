@@ -1,12 +1,11 @@
 import { animate, inView } from 'motion';
 import { choices, landingRotation } from './wheel';
 
-type SpinState = { verified?: boolean; hasSpun?: boolean; choiceIndex?: number; alreadySpun?: boolean; emailSent?: boolean; error?: string };
+type SpinState = { authenticated?: boolean; hasSpun?: boolean; choiceIndex?: number; alreadySpun?: boolean; emailSent?: boolean; error?: string };
 
 export function initialiseSpinner(root: HTMLDivElement) {
   const abort = new AbortController();
   let stopObserving: (() => void) | undefined;
-  let countdownTimer: ReturnType<typeof setInterval> | undefined;
   const section = root.querySelector<HTMLElement>('#spinner')!;
   const wheel = root.querySelector<SVGElement>('.wheel')!;
   const buttons = Array.from(root.querySelectorAll<HTMLButtonElement>('.spin-button, .wheel-centre'));
@@ -15,19 +14,137 @@ export function initialiseSpinner(root: HTMLDivElement) {
   const koda = root.querySelector<HTMLImageElement>('.koda')!;
   const kodaMessage = root.querySelector<HTMLSpanElement>('.koda-message')!;
   const host = root.querySelector<HTMLDivElement>('.koda-host')!;
-  const identityForm = root.querySelector<HTMLFormElement>('.identity-form')!;
-  const codeForm = root.querySelector<HTMLFormElement>('.code-form')!;
-  const nameInput = root.querySelector<HTMLInputElement>('#visitor-name')!;
-  const emailInput = root.querySelector<HTMLInputElement>('#visitor-email')!;
-  const codeInput = root.querySelector<HTMLInputElement>('#visitor-code')!;
   const gateStatus = root.querySelector<HTMLParagraphElement>('.gate-status')!;
-  const countdown = root.querySelector<HTMLParagraphElement>('.code-countdown')!;
-  const resendButton = root.querySelector<HTMLButtonElement>('.resend-button')!;
-  const resendLabel = resendButton.querySelector<HTMLSpanElement>('span')!;
+  const soundToggle = root.querySelector<HTMLButtonElement>('.sound-toggle')!;
+  const soundLabel = soundToggle.querySelector<HTMLSpanElement>('.sound-label')!;
   let rotation = 0;
   let spinning = false;
-  let codeExpiresAt = 0;
-  let resendAt = 0;
+  let soundEnabled = true;
+  let audioContext: AudioContext | null = null;
+  let tickNoise: AudioBuffer | null = null;
+  let tickTimers: number[] = [];
+  let soundStartedAt = 0;
+  let soundDuration = 0;
+  let soundRotation = 0;
+
+  function getAudioContext() {
+    if (audioContext) return audioContext;
+    try {
+      audioContext = new window.AudioContext();
+      const bufferLength = Math.floor(audioContext.sampleRate * 0.018);
+      tickNoise = audioContext.createBuffer(1, bufferLength, audioContext.sampleRate);
+      const samples = tickNoise.getChannelData(0);
+      for (let i = 0; i < samples.length; i++) samples[i] = (Math.random() * 2 - 1) * (1 - i / samples.length);
+      return audioContext;
+    } catch {
+      return null;
+    }
+  }
+
+  function prepareAudio() {
+    if (!soundEnabled) return;
+    const context = getAudioContext();
+    if (context?.state === 'suspended') void context.resume().catch(() => {});
+  }
+
+  function playSpinTick() {
+    if (!soundEnabled || !audioContext || !tickNoise || audioContext.state !== 'running') return;
+    const now = audioContext.currentTime;
+    const click = audioContext.createBufferSource();
+    const filter = audioContext.createBiquadFilter();
+    const clickGain = audioContext.createGain();
+    click.buffer = tickNoise;
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(1450, now);
+    filter.Q.setValueAtTime(0.7, now);
+    clickGain.gain.setValueAtTime(0.13, now);
+    clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.018);
+    click.connect(filter);
+    filter.connect(clickGain);
+    clickGain.connect(audioContext.destination);
+    click.start(now);
+
+    const tone = audioContext.createOscillator();
+    const toneGain = audioContext.createGain();
+    tone.type = 'triangle';
+    tone.frequency.setValueAtTime(760, now);
+    tone.frequency.exponentialRampToValueAtTime(390, now + 0.035);
+    toneGain.gain.setValueAtTime(0.035, now);
+    toneGain.gain.exponentialRampToValueAtTime(0.001, now + 0.035);
+    tone.connect(toneGain);
+    toneGain.connect(audioContext.destination);
+    tone.start(now);
+    tone.stop(now + 0.04);
+  }
+
+  function bezierValue(t: number, first: number, second: number) {
+    const inverse = 1 - t;
+    return 3 * inverse * inverse * t * first + 3 * inverse * t * t * second + t * t * t;
+  }
+
+  function timeAtSpinProgress(progress: number) {
+    let low = 0;
+    let high = 1;
+    for (let i = 0; i < 18; i++) {
+      const middle = (low + high) / 2;
+      if (bezierValue(middle, 0.75, 1) < progress) low = middle;
+      else high = middle;
+    }
+    return bezierValue((low + high) / 2, 0.12, 0.12);
+  }
+
+  function clearSpinTicks() {
+    tickTimers.forEach(window.clearTimeout);
+    tickTimers = [];
+  }
+
+  function scheduleSpinTicks() {
+    clearSpinTicks();
+    if (!soundEnabled || !spinning || !soundStartedAt || !soundDuration || !soundRotation) return;
+    const elapsed = performance.now() - soundStartedAt;
+    const segment = 360 / choices.length;
+    const currentOffset = ((rotation % segment) + segment) % segment;
+    let degreesToBoundary = (segment / 2 - currentOffset + segment) % segment;
+    if (degreesToBoundary < 0.001) degreesToBoundary = segment;
+    while (degreesToBoundary < soundRotation) {
+      const progress = degreesToBoundary / soundRotation;
+      const delay = soundDuration * timeAtSpinProgress(progress) - elapsed;
+      if (delay >= 0) tickTimers.push(window.setTimeout(playSpinTick, delay));
+      degreesToBoundary += segment;
+    }
+  }
+
+  function startSpinTicks(degrees: number, duration: number) {
+    soundStartedAt = performance.now();
+    soundDuration = duration;
+    soundRotation = degrees;
+    scheduleSpinTicks();
+  }
+
+  function stopSpinTicks() {
+    clearSpinTicks();
+    soundStartedAt = 0;
+    soundDuration = 0;
+    soundRotation = 0;
+  }
+
+  function updateSoundToggle() {
+    soundToggle.classList.toggle('is-muted', !soundEnabled);
+    soundToggle.setAttribute('aria-pressed', String(soundEnabled));
+    soundToggle.setAttribute('aria-label', soundEnabled ? 'Mute spin sound' : 'Turn spin sound on');
+    soundLabel.textContent = soundEnabled ? 'Sound on' : 'Muted';
+  }
+
+  soundToggle.addEventListener('click', () => {
+    soundEnabled = !soundEnabled;
+    updateSoundToggle();
+    if (soundEnabled) {
+      prepareAudio();
+      if (spinning) scheduleSpinTicks();
+    } else {
+      clearSpinTicks();
+    }
+  }, { signal: abort.signal });
 
   function setButtonsDisabled(disabled: boolean) {
     buttons.forEach(button => { button.disabled = disabled; });
@@ -52,12 +169,14 @@ export function initialiseSpinner(root: HTMLDivElement) {
     const heading = document.createElement('h2');
     heading.textContent = choice;
     const description = document.createElement('p');
-    description.textContent = returning ? 'Your one spin for this email has already been used.' : 'That was your one spin. This choice is yours!';
+    description.textContent = returning
+      ? 'Your saved CWP account spin is still here.'
+      : 'That’s your spin for the next 24 hours. This choice is yours!';
     result.append(letter, heading, description);
     buttonLabel.textContent = 'Spin used';
     koda.src = '/koala/koala-heart.png';
     koda.alt = 'Koda celebrating with a green heart';
-    kodaMessage.textContent = returning ? `${choice} is still yours!` : `${choice}! That’s your one spin.`;
+    kodaMessage.textContent = returning ? `${choice} is still yours!` : `${choice}! See you tomorrow.`;
     host.classList.remove('spinning');
     host.classList.add('celebrating');
     section.classList.add('is-spent');
@@ -69,17 +188,17 @@ export function initialiseSpinner(root: HTMLDivElement) {
     const heading = document.createElement('h2');
     heading.textContent = message;
     const detail = document.createElement('p');
-    detail.textContent = 'Your email’s one spin is safe. Try again to check its result.';
+    detail.textContent = 'Your account’s spin is safe. Check your connection, then try again.';
     result.append(heading, detail);
   }
 
   function unlock(state: SpinState) {
     section.classList.remove('is-locked');
     section.classList.add('is-verified');
-    setStatus('Email verified. Your spin is ready.', false);
+    setStatus('Your CWP account is verified. Your spin is ready.', false);
     if (state.hasSpun || state.alreadySpun) {
       if (typeof state.choiceIndex === 'number') displayResult(state.choiceIndex, true);
-      else setStatus('This email has already used its spin.', true);
+      else setStatus('This CWP account has already used its spin.', true);
       return;
     }
     section.classList.remove('is-spent');
@@ -88,131 +207,33 @@ export function initialiseSpinner(root: HTMLDivElement) {
     kodaMessage.textContent = 'You’re all set! Tap spin when you’re ready.';
   }
 
-  async function postJson(url: string, body: object) {
-    const response = await fetch(url, {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-      signal: abort.signal,
-    });
-    const payload = await response.json() as SpinState & { ok?: boolean; retryAfterSeconds?: number; expiresInSeconds?: number; resendAfterSeconds?: number };
-    return { response, payload };
-  }
-
-  const identity = () => ({ name: nameInput.value.trim(), email: emailInput.value.trim() });
-
-  function updateCountdown() {
-    const now = Date.now();
-    const codeSeconds = Math.max(0, Math.ceil((codeExpiresAt - now) / 1000));
-    const resendSeconds = Math.max(0, Math.ceil((resendAt - now) / 1000));
-    if (codeSeconds > 0) {
-      countdown.textContent = `Code expires in ${Math.floor(codeSeconds / 60)}:${String(codeSeconds % 60).padStart(2, '0')}.`;
-    } else if (codeExpiresAt) {
-      countdown.textContent = 'That code has expired. Request a new one to continue.';
-    }
-    resendButton.disabled = resendSeconds > 0;
-    resendLabel.textContent = resendSeconds > 0 ? `in ${resendSeconds}s` : '';
-  }
-
-  function startCountdown(expiresInSeconds: number, resendAfterSeconds: number) {
-    codeExpiresAt = Date.now() + expiresInSeconds * 1000;
-    resendAt = Date.now() + resendAfterSeconds * 1000;
-    updateCountdown();
-    if (countdownTimer) clearInterval(countdownTimer);
-    countdownTimer = setInterval(updateCountdown, 1000);
-  }
-
-  async function sendCode() {
-    const data = identity();
-    if (!data.name) { nameInput.reportValidity(); return; }
-    if (!emailInput.checkValidity()) { emailInput.reportValidity(); return; }
-    const submit = identityForm.querySelector<HTMLButtonElement>('.gate-button')!;
-    const resending = !codeForm.hidden;
-    if (resending && resendButton.disabled) return;
-    submit.disabled = true;
-    if (resending) resendButton.disabled = true;
-    setStatus('Sending your code…', false);
+  async function refreshAccess() {
     try {
-      const { response, payload } = await postJson('/api/auth/request-code', data);
-      if (!response.ok) {
-        if (payload.error === 'rate_limited') {
-          const wait = payload.retryAfterSeconds ?? 60;
-          resendAt = Date.now() + wait * 1000;
-          updateCountdown();
-          setStatus(`Please wait ${wait} seconds before requesting another code.`);
-        }
-        else if (payload.error === 'invalid_input') setStatus('Please check your name and email address.');
-        else setStatus('We couldn’t send the code just now. Please try again in a moment.');
+      const response = await fetch('/api/spin', {
+        credentials: 'same-origin',
+        cache: 'no-store',
+        signal: abort.signal,
+      });
+      if (response.ok) {
+        unlock(await response.json() as SpinState);
         return;
       }
-      identityForm.hidden = true;
-      codeForm.hidden = false;
-      codeInput.value = '';
-      startCountdown(payload.expiresInSeconds ?? 900, payload.resendAfterSeconds ?? 60);
-      setStatus(`We sent a code to ${data.email}. It’s valid for 15 minutes.`, false);
-      codeInput.focus();
+      section.classList.add('is-locked');
+      section.classList.remove('is-verified', 'is-spent');
+      setButtonsDisabled(true);
+      if (response.status === 403) setStatus('Verify your CWP account email to unlock the wheel.');
+      else if (response.status === 401) setStatus('Sign in with your CWP account to unlock the wheel.', false);
+      else setStatus('We couldn’t check your CWP account. Refresh the page and try again.');
     } catch {
-      if (!abort.signal.aborted) setStatus('We couldn’t reach the server. Check your connection and try again.');
-    } finally {
-      submit.disabled = false;
-      if (resending && resendAt <= Date.now()) resendButton.disabled = false;
+      if (!abort.signal.aborted) setStatus('We couldn’t reach the account service. Refresh the page and try again.');
     }
   }
 
-  identityForm.addEventListener('submit', event => { event.preventDefault(); void sendCode(); }, { signal: abort.signal });
-  resendButton.addEventListener('click', () => { void sendCode(); }, { signal: abort.signal });
-  root.querySelector<HTMLButtonElement>('.change-email')!.addEventListener('click', () => {
-    codeForm.hidden = true;
-    identityForm.hidden = false;
-    codeExpiresAt = 0;
-    if (countdownTimer) clearInterval(countdownTimer);
-    setStatus('');
-    emailInput.focus();
-  }, { signal: abort.signal });
-
-  codeForm.addEventListener('submit', async event => {
-    event.preventDefault();
-    if (!/^\d{6}$/.test(codeInput.value)) { codeInput.reportValidity(); setStatus('Enter the six-digit code from your email.'); return; }
-    const submit = codeForm.querySelector<HTMLButtonElement>('.gate-button')!;
-    submit.disabled = true;
-    setStatus('Checking your code…', false);
-    try {
-      const { response, payload } = await postJson('/api/auth/verify-code', { email: emailInput.value.trim(), code: codeInput.value });
-      if (!response.ok) {
-        if (payload.error === 'code_expired') setStatus('That code expired. Request a new one to continue.');
-        else if (payload.error === 'too_many_attempts') setStatus('Too many tries. Request a new code and try again.');
-        else if (payload.error === 'invalid_code') setStatus('That code doesn’t match. Check it and try again.');
-        else if (payload.error === 'rate_limited') setStatus('Too many attempts. Please wait before trying again.');
-        else setStatus('We couldn’t verify that code. Please try again.');
-        return;
-      }
-      if (countdownTimer) clearInterval(countdownTimer);
-      codeForm.hidden = true;
-      identityForm.hidden = true;
-      setStatus('Checking whether your spin is still available…', false);
-      const stateResponse = await fetch('/api/spin', { credentials: 'same-origin', signal: abort.signal, cache: 'no-store' });
-      if (!stateResponse.ok) {
-        section.classList.remove('is-locked');
-        section.classList.add('is-verified');
-        showSpinMessage('Your email is verified.');
-        buttonLabel.textContent = 'Reveal my spin';
-        setButtonsDisabled(false);
-        setStatus('Spin status could not load. Try the button to recover your result.');
-        return;
-      }
-      unlock(await stateResponse.json() as SpinState);
-      const spinButton = root.querySelector<HTMLButtonElement>('.spin-button')!;
-      if (!spinButton.disabled) spinButton.focus();
-    } catch {
-      if (!abort.signal.aborted) setStatus('We couldn’t verify your access. Please refresh and try again.');
-    } finally {
-      submit.disabled = false;
-    }
-  }, { signal: abort.signal });
+  window.addEventListener('cwp:account-changed', () => { void refreshAccess(); }, { signal: abort.signal });
 
   async function spin() {
     if (spinning || section.classList.contains('is-locked') || section.classList.contains('is-spent')) return;
+    prepareAudio();
     spinning = true;
     setButtonsDisabled(true);
     buttonLabel.textContent = 'Getting your spin…';
@@ -222,16 +243,12 @@ export function initialiseSpinner(root: HTMLDivElement) {
       const state = await response.json() as SpinState;
       if (response.status === 409 && state.alreadySpun && typeof state.choiceIndex === 'number') {
         displayResult(state.choiceIndex, true);
-        setStatus('This email has already used its spin.');
+        setStatus('This CWP account has already used its spin.');
         return;
       }
       if (!response.ok || typeof state.choiceIndex !== 'number' || !choices[state.choiceIndex]) {
         if (response.status === 401) {
-          section.classList.add('is-locked');
-          section.classList.remove('is-verified');
-          identityForm.hidden = false;
-          codeForm.hidden = true;
-          setStatus('Your verification expired. Enter your email and request a new code.');
+          await refreshAccess();
         } else {
           showSpinMessage('Your spin could not start.');
           setStatus('Your spin could not be started. Please try again.');
@@ -253,8 +270,10 @@ export function initialiseSpinner(root: HTMLDivElement) {
         easing: 'cubic-bezier(0.12, 0.75, 0.12, 1)',
         fill: 'forwards',
       });
+      startSpinTicks(next - rotation, 4400);
       try { await animation.finished; } catch { return; }
       if (abort.signal.aborted) return;
+      stopSpinTicks();
       rotation = next % 360;
       displayResult(index, false);
       celebrate();
@@ -268,6 +287,7 @@ export function initialiseSpinner(root: HTMLDivElement) {
         buttonLabel.textContent = 'Reveal my spin';
       }
     } finally {
+      stopSpinTicks();
       spinning = false;
     }
   }
@@ -315,17 +335,14 @@ export function initialiseSpinner(root: HTMLDivElement) {
   }, { signal: abort.signal });
 
   void (async () => {
-    try {
-      const response = await fetch('/api/spin', { credentials: 'same-origin', cache: 'no-store', signal: abort.signal });
-      if (!response.ok) return;
-      unlock(await response.json() as SpinState);
-    } catch { /* Keep the email gate visible if the session service is unavailable. */ }
+    await refreshAccess();
   })();
 
   return () => {
     abort.abort();
+    stopSpinTicks();
+    if (audioContext && audioContext.state !== 'closed') void audioContext.close().catch(() => {});
     stopObserving?.();
-    if (countdownTimer) clearInterval(countdownTimer);
     for (const animation of root.getAnimations({ subtree: true })) animation.cancel();
     root.querySelector('.confetti-stage')?.replaceChildren();
   };

@@ -16,7 +16,7 @@ const segments = choices.map((choice, index) => {
 export const siteMarkup = `
   <header class="site-header">
     <a class="brand" href="https://codewithpurpose.org" aria-label="CodeWithPurpose home"><img src="/koala/koala-wave.png" alt="" width="45" height="48"/><span class="brand-name">CWP<span class="brand-event">Hackathon</span></span></a>
-    <nav aria-label="Main navigation"><a href="#spinner">Spin</a><a href="#track">The track</a><a href="/agents/">For AI agents</a></nav>
+    <nav aria-label="Main navigation"><a href="#spinner">Spin</a><a href="#track">The track</a><a href="https://codewithpurpose.org" target="_blank" rel="noopener noreferrer" aria-label="Learn at CodeWithPurpose (opens in a new tab)">Learn <span aria-hidden="true">↗</span></a><a class="nav-quiet" href="/agents/">For AI agents</a></nav>
   </header>
   <main><div class="confetti-stage" aria-hidden="true"></div><div class="floating-leaves" aria-hidden="true"><span>❧</span><span>❧</span><span>✧</span></div>
     <section class="intro" aria-labelledby="page-title">
@@ -31,28 +31,23 @@ export const siteMarkup = `
           <div class="wheel-disc"><svg class="wheel" viewBox="0 0 500 500" role="img" aria-label="Wheel with eleven equal sections, Choice A through Choice K"><circle cx="250" cy="250" r="246" fill="#fffbf5" stroke="#243d30" stroke-width="6"/>${segments}<circle cx="250" cy="250" r="230" fill="none" stroke="#243d30" stroke-width="4"/></svg></div>
           <button class="wheel-centre" aria-label="Spin the wheel" disabled><img class="centre-koda" src="/koala/koala-wave.png" alt=""/><span>Spin</span></button>
         </div>
-        <p class="wheel-caption">Each choice has the same chance.</p>
+        <div class="wheel-controls">
+          <p class="wheel-caption">Each choice has the same chance.</p>
+          <button class="sound-toggle" type="button" aria-label="Mute spin sound" aria-pressed="true">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 9v6h4l5 4V5l-5 4h-4Z"/><path class="sound-wave" d="M15 9.5c1.8 1.4 1.8 4.6 0 6M17.5 7c3.2 2.5 3.2 8.5 0 11"/><path class="sound-slash" d="m15 9 5 6m0-6-5 6"/></svg>
+            <span class="sound-label">Sound on</span>
+          </button>
+        </div>
       </div>
       <div class="control-side">
         <section class="access-gate" aria-labelledby="gate-title">
           <img src="/koala/koala-wave.png" alt="" width="62" height="66"/>
           <span class="gate-eyebrow">One spin, just for you</span>
           <h2 id="gate-title">Get your spin</h2>
-          <p class="gate-intro">Add your name and email. We’ll send a code to make sure it’s you.</p>
-          <form class="identity-form" novalidate>
-            <label for="visitor-name">Your name</label><input id="visitor-name" name="name" type="text" autocomplete="name" maxlength="80" required/>
-            <label for="visitor-email">Email address</label><input id="visitor-email" name="email" type="email" autocomplete="email" maxlength="254" required/>
-            <button class="gate-button" type="submit">Email me a code</button>
-          </form>
-          <form class="code-form" hidden novalidate>
-            <label for="visitor-code">Six-digit code</label><input id="visitor-code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required/>
-            <p class="code-countdown" aria-live="polite"></p>
-            <button class="gate-button" type="submit">Verify and unlock</button>
-            <button class="resend-button" type="button" disabled>Send a new code <span></span></button>
-            <button class="change-email" type="button">Use a different email</button>
-          </form>
+          <p class="gate-intro">Sign in or create a free CWP account to unlock the wheel.</p>
+          <div class="account-gate-slot"></div>
           <p class="gate-status" role="status" aria-live="polite" aria-atomic="true"></p>
-          <p class="privacy-note">Your name and email verify access; both expire after 24 hours. We briefly use your connection address to limit code requests. One spin per email.</p>
+          <p class="privacy-note">A verified CWP account is required. One spin per account every 24 hours. We’ll send your result to the verified email on your account.</p>
         </section>
         <div class="koda-host"><div class="speech-bubble"><span class="koda-message">Hi, I’m Koda!<br/>Tap spin when you’re ready.</span></div><img class="koda" role="button" tabindex="0" aria-label="Make Koda dance" src="/koala/koala-wave.png" alt="Koda, the CWP koala, waving" width="523" height="560"/><span class="koda-spark" aria-hidden="true">✧</span></div>
         <div class="result-panel">
