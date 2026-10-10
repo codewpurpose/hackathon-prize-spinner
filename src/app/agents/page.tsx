@@ -18,6 +18,14 @@ export default function AgentsPage() {
         </a>
         <nav aria-label="Page navigation">
           <a href="/">Hackathon home</a>
+          <a
+            href="https://codewithpurpose.org"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Learn at CodeWithPurpose (opens in a new tab)"
+          >
+            Learn <span aria-hidden="true">↗</span>
+          </a>
           <a href="/llms.txt">Plain-text guide</a>
         </nav>
       </header>
